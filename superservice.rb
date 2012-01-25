@@ -28,10 +28,9 @@ module SuperService
     attribute :training_dataset_uri
     attribute :prediction_feature
     
+    attribute :create_bbrc_features
     attribute :orig_training_dataset_uri
     attribute :feature_dataset_uri
-    
-    @@create_features_with_fminer = true
     
     attr_accessor :subjectid
     
@@ -72,27 +71,37 @@ module SuperService
     end
 
     def prediction_confidence_feature
-      a_model = OpenTox::Model::Generic.find(self.ad_model, subjectid)
-      predicted_variable = a_model.predicted_variable(@subjectid)
-      feature = OpenTox::Feature.new File.join( uri, "predicted", "confidence")
-      feature.add_metadata( {
-        RDF.type => OT.ModelPrediction,
-        OT.hasSource => uri,
-        DC.creator => uri,
-        DC.title => "#{URI.decode(File.basename( prediction_feature ))} confidence",
-        OWL.sameAs => predicted_variable
-      })
-      feature
+      if ad_algorithm
+        a_model = OpenTox::Model::Generic.find(self.ad_model, subjectid)
+        predicted_variable = a_model.predicted_variable(@subjectid)
+        feature = OpenTox::Feature.new File.join( uri, "predicted", "confidence")
+        feature.add_metadata( {
+          RDF.type => OT.ModelPrediction,
+          OT.hasSource => uri,
+          DC.creator => uri,
+          DC.title => "#{URI.decode(File.basename( prediction_feature ))} confidence",
+          OWL.sameAs => predicted_variable
+        })
+        feature
+      else
+        nil
+      end
     end
     
     def metadata
       value_feature_uri = File.join( uri, "predicted", "value")
-      confidence_feature_uri = File.join( uri, "predicted", "confidence")
+      features = [value_feature_uri]
+      if ad_algorithm
+        confidence_feature_uri = File.join( uri, "predicted", "confidence")
+        features << confidence_feature_uri
+      end
       { DC.title => 'Supermodel',
         DC.creator => creator, 
         OT.trainingDataset => training_dataset_uri, 
         OT.dependentVariables => prediction_feature,
-        OT.predictedVariables => [value_feature_uri, confidence_feature_uri]}
+        OT.predictedVariables => features,
+        OT.featureDataset => feature_dataset_uri,
+      }
     end
     
     def to_rdf
@@ -104,8 +113,7 @@ module SuperService
     
     def build(waiting_task=nil)
       
-      if @@create_features_with_fminer
-        
+      if create_bbrc_features
         self.orig_training_dataset_uri = training_dataset_uri
         fminer = File.join(CONFIG[:services]["opentox-algorithm"],"fminer/bbrc")
         data_train = OpenTox::Dataset.find(training_dataset_uri)
@@ -128,23 +136,27 @@ module SuperService
         end
         data.save
         self.training_dataset_uri = data.uri
+      else
+        self.feature_dataset_uri = training_dataset_uri
       end
         
       algorithm = OpenTox::Algorithm::Generic.new(prediction_algorithm)
       params = { :dataset_uri => training_dataset_uri, :prediction_feature => prediction_feature, :subjectid => subjectid }
       params.merge!(split_params(prediction_algorithm_params)) if prediction_algorithm_params
       self.prediction_model = algorithm.run(params, OpenTox::SubTask.create(waiting_task, 0, 50))
-      algorithm = OpenTox::Algorithm::Generic.new(ad_algorithm)
-      params = { :dataset_uri => training_dataset_uri, :prediction_feature => prediction_feature, :subjectid => subjectid }
-      params.merge!(split_params(ad_algorithm_params)) if ad_algorithm_params
-      self.ad_model = algorithm.run(params, OpenTox::SubTask.create(waiting_task, 50, 100))
+      if (ad_algorithm)
+        algorithm = OpenTox::Algorithm::Generic.new(ad_algorithm)
+        params = { :dataset_uri => training_dataset_uri, :prediction_feature => prediction_feature, :subjectid => subjectid }
+        params.merge!(split_params(ad_algorithm_params)) if ad_algorithm_params
+        self.ad_model = algorithm.run(params, OpenTox::SubTask.create(waiting_task, 50, 100))
+      end
       self.save
       raise unless self.valid?
     end
     
     def apply(dataset_uri, waiting_task=nil)
       
-      if @@create_features_with_fminer
+      if create_bbrc_features
         data_test = OpenTox::Dataset.find(dataset_uri)
         raise "not found: #{dataset_uri}" unless data_test
         fminer = File.join(CONFIG[:services]["opentox-algorithm"],"fminer/bbrc")
@@ -180,25 +192,26 @@ module SuperService
           "prediction_dataset: '"+prediction_dataset_uri.to_s+"'\n"+
           "available features are: "+prediction_dataset.features.inspect if 
             prediction_dataset.features.keys.index(predicted_variable)==nil and prediction_dataset.compounds.size>0
-            
-      a_model = OpenTox::Model::Generic.find(self.ad_model, subjectid)
-      a_prediction_dataset_uri = a_model.run( {:dataset_uri => dataset_uri, :subjectid => subjectid}, "text/uri-list",
-        OpenTox::SubTask.create(waiting_task, 33, 66))
-      a_predicted_variable = a_model.predicted_variable(subjectid)
-      a_predicted_variable = prediction_feature if a_predicted_variable==nil
-      a_prediction_dataset = OpenTox::Dataset.find(a_prediction_dataset_uri)
-      raise "predicted_variable not found in prediction_dataset\n"+
-          "predicted_variable '"+a_predicted_variable.to_s+"'\n"+
-          "prediction_dataset: '"+a_prediction_dataset_uri.to_s+"'\n"+
-          "available features are: "+a_prediction_dataset.features.inspect if 
-            a_prediction_dataset.features.keys.index(a_predicted_variable)==nil and a_prediction_dataset.compounds.size>0
-
       value_feature_uri = File.join( uri, "predicted", "value")
-      confidence_feature_uri = File.join( uri, "predicted", "confidence")
+
+      if ad_algorithm
+        a_model = OpenTox::Model::Generic.find(self.ad_model, subjectid)
+        a_prediction_dataset_uri = a_model.run( {:dataset_uri => dataset_uri, :subjectid => subjectid}, "text/uri-list",
+          OpenTox::SubTask.create(waiting_task, 33, 66))
+        a_predicted_variable = a_model.predicted_variable(subjectid)
+        a_predicted_variable = prediction_feature if a_predicted_variable==nil
+        a_prediction_dataset = OpenTox::Dataset.find(a_prediction_dataset_uri)
+        raise "predicted_variable not found in prediction_dataset\n"+
+            "predicted_variable '"+a_predicted_variable.to_s+"'\n"+
+            "prediction_dataset: '"+a_prediction_dataset_uri.to_s+"'\n"+
+            "available features are: "+a_prediction_dataset.features.inspect if 
+              a_prediction_dataset.features.keys.index(a_predicted_variable)==nil and a_prediction_dataset.compounds.size>0
+        confidence_feature_uri = File.join( uri, "predicted", "confidence")
+      end
                         
       combined_dataset = OpenTox::Dataset.create(subjectid)
       combined_dataset.add_feature(value_feature_uri)
-      combined_dataset.add_feature(confidence_feature_uri)
+      combined_dataset.add_feature(confidence_feature_uri) if ad_algorithm
       prediction_dataset.compounds.each do |c|
         combined_dataset.add_compound(c)
         #puts "add #{c} #{predicted_variable} #{prediction_dataset.data_entries[c][predicted_variable]}"
@@ -206,7 +219,7 @@ module SuperService
         raise if prediction_dataset.data_entries[c][predicted_variable].size!=1
         combined_dataset.add(c,value_feature_uri,prediction_dataset.data_entries[c][predicted_variable][0])
         
-        combined_dataset.add(c,confidence_feature_uri,rand) #a_prediction_dataset.data_entries[c][a_predicted_variable])
+        combined_dataset.add(c,confidence_feature_uri,rand) if ad_algorithm #a_prediction_dataset.data_entries[c][a_predicted_variable]) 
       end
       combined_dataset.save(subjectid)
       combined_dataset.uri        
