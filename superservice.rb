@@ -28,6 +28,9 @@ module SuperService
     attribute :training_dataset_uri
     attribute :prediction_feature
     
+    attribute :orig_training_dataset_uri
+    attribute :feature_dataset_uri
+    
     @@create_features_with_fminer = true
     
     attr_accessor :subjectid
@@ -102,10 +105,12 @@ module SuperService
     def build(waiting_task=nil)
       
       if @@create_features_with_fminer
+        
+        self.orig_training_dataset_uri = training_dataset_uri
         fminer = File.join(CONFIG[:services]["opentox-algorithm"],"fminer/bbrc")
         data_train = OpenTox::Dataset.find(training_dataset_uri)
         size = data_train.compounds.size
-        feature_dataset_uri = OpenTox::RestClientWrapper.post(fminer,
+        self.feature_dataset_uri = OpenTox::RestClientWrapper.post(fminer,
           {:dataset_uri => training_dataset_uri, :prediction_feature => prediction_feature, :min_frequency => (size*0.05).to_i})
         #merge feature and training dataset
         data = OpenTox::Dataset.create
@@ -138,6 +143,31 @@ module SuperService
     end
     
     def apply(dataset_uri, waiting_task=nil)
+      
+      if @@create_features_with_fminer
+        
+        fminer = File.join(CONFIG[:services]["opentox-algorithm"],"fminer/bbrc")
+        test_feature_dataset_uri = OpenTox::RestClientWrapper.post(fminer,
+                  {:feature_dataset_uri => self.feature_dataset_uri, :dataset_uri => dataset_uri})
+        #merge feature and training dataset
+        data = OpenTox::Dataset.create
+        data_test = OpenTox::Dataset.find(dataset_uri)
+        data_feat = OpenTox::Dataset.find(test_feature_dataset_uri)
+        [data_test, data_feat].each do |d|
+          d.compounds.each{|c| data.add_compound(c)}
+          d.features.each do |f,m|
+            data.add_feature(f,m)
+            d.compounds.each do |c|
+              d.data_entries[c][f].each do |v|
+                data.add(c,f,v)
+              end if d.data_entries[c][f]
+            end
+          end
+        end
+        data.save
+        dataset_uri = data.uri
+      end
+      
       model = OpenTox::Model::Generic.find(self.prediction_model, subjectid)
       prediction_dataset_uri = model.run( {:dataset_uri => dataset_uri, :subjectid => subjectid}, "text/uri-list",
         OpenTox::SubTask.create(waiting_task, 0, 33))
