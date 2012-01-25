@@ -122,7 +122,7 @@ module SuperService
             d.compounds.each do |c|
               d.data_entries[c][f].each do |v|
                 data.add(c,f,v)
-              end if d.data_entries[c][f]
+              end if d.data_entries[c] and d.data_entries[c][f]
             end
           end
         end
@@ -161,7 +161,7 @@ module SuperService
             d.compounds.each do |c|
               d.data_entries[c][f].each do |v|
                 data.add(c,f,v)
-              end if d.data_entries[c][f]
+              end if d.data_entries[c] and d.data_entries[c][f]
             end
           end
         end
