@@ -53,7 +53,7 @@ get '/:id' do
         "A Super-Model."
     content_type "text/html"
     model.inspect # to load all the stuff
-    OpenTox.text_to_html model.metadata.to_yaml,@subjectid,related_links,description
+    OpenTox.text_to_html({:metadata => model.metadata, :model => model}.to_yaml,@subjectid,related_links,description)
   else #/application\/x-yaml|\*\/\*/
     content_type "application/x-yaml"
     model.metadata.to_yaml
