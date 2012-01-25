@@ -28,6 +28,8 @@ module SuperService
     attribute :training_dataset_uri
     attribute :prediction_feature
     
+    @@create_features_with_fminer = true
+    
     attr_accessor :subjectid
     
     def date
@@ -98,6 +100,31 @@ module SuperService
     end
     
     def build(waiting_task=nil)
+      
+      if @@create_features_with_fminer
+        fminer = File.join(CONFIG[:services]["opentox-algorithm"],"fminer/bbrc")
+        data_train = OpenTox::Dataset.find(training_dataset_uri)
+        size = data_train.compounds.size
+        feature_dataset_uri = OpenTox::RestClientWrapper.post(fminer,
+          {:dataset_uri => training_dataset_uri, :prediction_feature => prediction_feature, :min_frequency => (size*0.05).to_i})
+        #merge feature and training dataset
+        data = OpenTox::Dataset.create
+        data_feat = OpenTox::Dataset.find(feature_dataset_uri)
+        [data_train, data_feat].each do |d|
+          d.compounds.each{|c| data.add_compound(c)}
+          d.features.each do |f,m|
+            data.add_feature(f,m)
+            d.compounds.each do |c|
+              d.data_entries[c][f].each do |v|
+                data.add(c,f,v)
+              end if d.data_entries[c][f]
+            end
+          end
+        end
+        data.save
+        self.training_dataset_uri = data.uri
+      end
+        
       algorithm = OpenTox::Algorithm::Generic.new(prediction_algorithm)
       params = { :dataset_uri => training_dataset_uri, :prediction_feature => prediction_feature, :subjectid => subjectid }
       params.merge!(split_params(prediction_algorithm_params)) if prediction_algorithm_params
