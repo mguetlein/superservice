@@ -145,14 +145,15 @@ module SuperService
     def apply(dataset_uri, waiting_task=nil)
       
       if @@create_features_with_fminer
-        
+        data_test = OpenTox::Dataset.find(dataset_uri)
+        raise "not found: #{dataset_uri}" unless data_test
         fminer = File.join(CONFIG[:services]["opentox-algorithm"],"fminer/bbrc")
         test_feature_dataset_uri = OpenTox::RestClientWrapper.post(fminer,
                   {:feature_dataset_uri => self.feature_dataset_uri, :dataset_uri => dataset_uri})
         #merge feature and training dataset
         data = OpenTox::Dataset.create
-        data_test = OpenTox::Dataset.find(dataset_uri)
         data_feat = OpenTox::Dataset.find(test_feature_dataset_uri)
+        raise "not found: #{test_feature_dataset_uri}" unless data_feat
         [data_test, data_feat].each do |d|
           d.compounds.each{|c| data.add_compound(c)}
           d.features.each do |f,m|
