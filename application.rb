@@ -96,7 +96,7 @@ post '/:id' do
   raise OpenTox::NotFoundError.new "super-model '#{params[:id]}' not found." unless model
   model.subjectid = @subjectid
   task = OpenTox::Task.create( "Apply Super-Model", url_for("/", :full) ) do |task|
-    model.apply(params[:dataset_uri])
+    model.apply(params[:dataset_uri],task)
   end
   return_task(task)  
 end
