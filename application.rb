@@ -8,8 +8,6 @@ post '/?' do
     raise OpenTox::BadRequestError.new "#{p} missing" unless params[p].to_s.size>0
   end
   params[:training_dataset_uri] = params.delete("dataset_uri")
-  params[:create_bbrc_features] = (params[:create_bbrc_features].size>0 && 
-    params[:create_bbrc_features]!="false" && params[:create_bbrc_features]!="0") if params[:create_bbrc_features]
   task = OpenTox::Task.create( "Create Supermodel", url_for("/", :full) ) do |task|
     model = SuperService::SuperModel.create(params,@subjectid)
     model.build(task)
@@ -25,13 +23,13 @@ get '/?' do
       "A list of Super-Models.\n"+
       "Use the POST method to create a Super-Model."
     post_command = OpenTox::PostCommand.new request.url,"Create Super-Model"
-    post_command.attributes << OpenTox::PostAttribute.new("prediction_algorithm")
-    post_command.attributes << OpenTox::PostAttribute.new("ad_algorithm",false,nil)
     post_command.attributes << OpenTox::PostAttribute.new("dataset_uri")
     post_command.attributes << OpenTox::PostAttribute.new("prediction_feature")
-    post_command.attributes << OpenTox::PostAttribute.new("create_bbrc_features",false,"false","Create bbrc-features using fminer webservice")
+    post_command.attributes << OpenTox::PostAttribute.new("prediction_algorithm")
     post_command.attributes << OpenTox::PostAttribute.new("prediction_algorithm_params",false,nil,"Params used for prediction model building, separate with ';', example: param1=v1;param2=v2")
+    post_command.attributes << OpenTox::PostAttribute.new("ad_algorithm",false,nil)
     post_command.attributes << OpenTox::PostAttribute.new("ad_algorithm_params",false,nil,"Params used for ad model building, separate with ';', example: param1=v1;param2=v2")
+    post_command.attributes << OpenTox::PostAttribute.new("create_bbrc_features",false,"false","Create bbrc-features using fminer webservice")
     content_type "text/html"
     OpenTox.text_to_html uri_list,@subjectid,nil,description,post_command
   else
