@@ -347,12 +347,22 @@ module SuperService
         combined_dataset.add_compound(c)
         #puts "add #{c} #{predicted_variable} #{prediction_dataset.data_entries[c][predicted_variable]}"
         
-        raise if prediction_dataset.data_entries[c][predicted_variable].size!=1
-        combined_dataset.add(c,value_feature_uri,prediction_dataset.data_entries[c][predicted_variable][0])
+        #raise "not 1 value for #{c} and #{predicted_variable} in #{prediction_dataset.uri} :"+
+        #  " #{prediction_dataset.data_entries[c][predicted_variable].inspect} (class: #{prediction_dataset.data_entries[c][predicted_variable].class})" if 
+        #    prediction_dataset.data_entries[c][predicted_variable].size!=1
+        predicted = prediction_dataset.data_entries[c][predicted_variable]
+        predicted.each do |v|
+          combined_dataset.add(c,value_feature_uri,v)
+        end
         
         if ad_algorithm
-          raise if a_prediction_dataset.data_entries[c][a_predicted_variable].size!=1
-          combined_dataset.add(c,confidence_feature_uri,a_prediction_dataset.data_entries[c][a_predicted_variable][0])
+          #raise if a_prediction_dataset.data_entries[c][a_predicted_variable].size!=1
+          predicted_ad = a_prediction_dataset.data_entries[c][a_predicted_variable]
+          predicted_ad *= predicted.size if predicted.size>1 and predicted_ad.size==1
+          raise unless predicted.size==predicted_ad.size
+          predicted_ad.each do |v|
+            combined_dataset.add(c,confidence_feature_uri,v)
+          end
         else
           #combined_dataset.add(c,confidence_feature_uri,euclAD.ad(c,data_test))
         end 
