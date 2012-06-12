@@ -55,7 +55,7 @@ module SuperService
         rescue => ex
           LOGGER.warn "fminer result dataset not found: #{f.fminer_dataset_uri}"
         end
-        if (d==nil || size>=1000)
+        if (d==nil || size>1000)
           LOGGER.warn "deleting fminer result"
           [f.fminer_dataset_uri, f.combined_dataset_uri].each do |dataset|
             begin
@@ -95,11 +95,13 @@ module SuperService
         f.fminer_dataset_uri = OpenTox::RestClientWrapper.post(algorithm_uri,
           { :dataset_uri => f.dataset_uri, 
             :prediction_feature => f.prediction_feature, 
-            :min_frequency => (size*f.relative_min_frequency.to_f).to_i},
+            :min_frequency => (size*f.relative_min_frequency.to_f).to_i,
+            :max_num_features => 1000},
           {},waiting_task).to_s
         #merge feature and training dataset
         combined_data = OpenTox::Dataset.create
         data_feat = OpenTox::Dataset.find(f.fminer_dataset_uri)
+        LOGGER.debug "num features mined by fminer: #{data_feat.features.size}"
         {data_train => [f.prediction_feature], data_feat => data_feat.features.keys}.each do |d,features|
           d.compounds.each{|c| combined_data.add_compound(c)}
           features.each do |feat|

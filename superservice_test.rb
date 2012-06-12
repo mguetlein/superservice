@@ -79,9 +79,6 @@ class SuperserviceTest < Test::Unit::TestCase
   def test_it
     begin
       
-      delete '/fminer_large_results'
-      exit
-      
       prediction_algorithm = "http://local-ot/weka/RandomForest"
       ad_algorithm = "http://local-ot/appdomain/EuclideanDistance"
       
