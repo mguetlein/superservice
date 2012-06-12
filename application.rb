@@ -99,6 +99,10 @@ post '/:id' do
   return_task(task)  
 end
 
+delete '/fminer_large_results' do
+  SuperService::FminerWrapper.delete_large_results
+end
+
 
 
   
