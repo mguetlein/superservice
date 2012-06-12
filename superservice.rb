@@ -52,7 +52,11 @@ module SuperService
         if (size>=1000)
           LOGGER.warn "deleting fminer result"
           [f.fminer_dataset_uri, f.combined_dataset_uri].each do |dataset|
-            OpenTox::RestClientWrapper.delete dataset if dataset
+            begin
+              OpenTox::RestClientWrapper.delete dataset if dataset
+            rescue => ex
+              LOGGER.warn "could not delete #{dataset}"
+            end
           end 
           f.delete
         end
