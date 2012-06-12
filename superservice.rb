@@ -46,10 +46,16 @@ module SuperService
     
     def self.delete_large_results
       FminerWrapper.all.each do |f|
-        d = OpenTox::Dataset.find(f.fminer_dataset_uri)
-        size = d.features.size
-        LOGGER.debug "fminer results datsaet size : #{size}"
-        if (size>=1000)
+        d = nil
+        size = -1
+        begin
+          d = OpenTox::Dataset.find(f.fminer_dataset_uri)
+          size = d.features.size
+          LOGGER.debug "fminer results datsaet size: #{size}"
+        rescue => ex
+          LOGGER.warn "fminer result dataset not found: #{dataset}"
+        end
+        if (d==nil || size>=1000)
           LOGGER.warn "deleting fminer result"
           [f.fminer_dataset_uri, f.combined_dataset_uri].each do |dataset|
             begin
