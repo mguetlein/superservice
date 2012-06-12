@@ -53,7 +53,7 @@ module SuperService
           size = d.features.size
           LOGGER.debug "fminer results datsaet size: #{size}"
         rescue => ex
-          LOGGER.warn "fminer result dataset not found: #{dataset}"
+          LOGGER.warn "fminer result dataset not found: #{f.fminer_dataset_uri}"
         end
         if (d==nil || size>=1000)
           LOGGER.warn "deleting fminer result"
