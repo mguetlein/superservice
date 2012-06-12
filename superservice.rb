@@ -51,7 +51,7 @@ module SuperService
         LOGGER.debug "fminer results datsaet size : #{size}"
         if (size>=1000)
           LOGGER.warn "deleting fminer result"
-          [fminer_dataset_uri, combined_dataset_uri].each do |dataset|
+          [f.fminer_dataset_uri, f.combined_dataset_uri].each do |dataset|
             OpenTox::RestClientWrapper.delete dataset
           end 
           f.delete
