@@ -86,10 +86,9 @@ module SuperService
     def self.mine_and_combine(algorithm_uri, algorithm_params, waiting_task=nil)
       f = find_or_create_wrapper(algorithm_uri,algorithm_params)
       if f.fminer_dataset_uri and f.combined_dataset_uri
-        LOGGER.debug "found existing fminer result"
+        LOGGER.info "fminer features already mined #{f.combined_dataset_uri}"
         f
       else
-        LOGGER.debug "running fminer"
         data_train = OpenTox::Dataset.find(f.dataset_uri)
         size = data_train.compounds.size
         f.fminer_dataset_uri = OpenTox::RestClientWrapper.post(algorithm_uri,
@@ -123,10 +122,9 @@ module SuperService
     def self.match(algorithm_uri, algorithm_params, waiting_task=nil)
       f = find_or_create_wrapper(algorithm_uri, algorithm_params)
       if f.fminer_dataset_uri
-        LOGGER.debug "found existing fminer result"
+        LOGGER.info "fminer features already matched #{f.fminer_dataset_uri}"
         f
       else
-        LOGGER.debug "running fminer"
         f.fminer_dataset_uri = OpenTox::RestClientWrapper.post(algorithm_uri,
           { :dataset_uri => f.dataset_uri, 
           :feature_dataset_uri => f.feature_dataset_uri},
@@ -261,7 +259,7 @@ module SuperService
     
     def to_rdf
       s = OpenTox::Serializer::Owl.new
-      puts metadata.to_yaml
+      #puts metadata.to_yaml
       s.add_model(uri,metadata)
       s.to_rdfxml
     end

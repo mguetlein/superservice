@@ -4,6 +4,7 @@ require 'opentox-ruby'
 require 'superservice.rb'
 
 post '/?' do
+  LOGGER.info "creating supermodel #{params.inspect}"
   [:dataset_uri, :prediction_algorithm, :prediction_feature].each do |p|
     raise OpenTox::BadRequestError.new "#{p} missing" unless params[p].to_s.size>0
   end
@@ -11,12 +12,14 @@ post '/?' do
   task = OpenTox::Task.create( "Create Supermodel", url_for("/", :full) ) do |task|
     model = SuperService::SuperModel.create(params,@subjectid)
     model.build(task)
+    LOGGER.info "supermodel done #{model.uri}"
     model.uri
   end
   return_task(task)  
 end
 
 get '/?' do
+  LOGGER.debug "get super-model list #{params.inspect}"
   uri_list = SuperService::SuperModel.all.sort.collect{|v| v.uri}.join("\n") + "\n"
   if request.env['HTTP_ACCEPT'] =~ /text\/html/
     description = 
@@ -39,7 +42,7 @@ get '/?' do
 end
 
 get '/:id' do
-  LOGGER.info "get super-model with id "+params[:id].to_s
+  LOGGER.debug "get super-model with id "+params[:id].to_s
   model = SuperService::SuperModel.get(params[:id])
   raise OpenTox::NotFoundError.new "super-model '#{params[:id]}' not found." unless model
   model.subjectid = @subjectid
@@ -88,13 +91,15 @@ get '/:id/predicted/:prop' do
 end
 
 post '/:id' do
-  raise OpenTox::BadRequestError.new "dataset_uri missing" unless params[:dataset_uri].to_s.size>0
   LOGGER.info "apply super-model with id "+params[:id].to_s
+  raise OpenTox::BadRequestError.new "dataset_uri missing" unless params[:dataset_uri].to_s.size>0
   model = SuperService::SuperModel.get(params[:id])
   raise OpenTox::NotFoundError.new "super-model '#{params[:id]}' not found." unless model
   model.subjectid = @subjectid
   task = OpenTox::Task.create( "Apply Super-Model", url_for("/", :full) ) do |task|
-    model.apply(params[:dataset_uri],task)
+    res = model.apply(params[:dataset_uri],task)
+    LOGGER.info "super model done "+res.to_s
+    res
   end
   return_task(task)  
 end
