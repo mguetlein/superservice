@@ -12,7 +12,7 @@ post '/?' do
   task = OpenTox::Task.create( "Create Supermodel", url_for("/", :full) ) do |task|
     model = SuperService::SuperModel.create(params,@subjectid)
     model.build(task)
-    LOGGER.info "supermodel done #{model.uri}"
+    LOGGER.info "supermodel created: #{model.uri}"
     model.uri
   end
   return_task(task)  
@@ -98,7 +98,7 @@ post '/:id' do
   model.subjectid = @subjectid
   task = OpenTox::Task.create( "Apply Super-Model", url_for("/", :full) ) do |task|
     res = model.apply(params[:dataset_uri],task)
-    LOGGER.info "super model done "+res.to_s
+    LOGGER.info "super-model prediction result: "+res.to_s
     res
   end
   return_task(task)  
