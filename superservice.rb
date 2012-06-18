@@ -44,6 +44,22 @@ module SuperService
             
     attr_accessor :subjectid
     
+    def delete_model
+      begin
+        OpenTox::RestClientWrapper.delete(prediction_model)
+      rescue => ex
+        Logger.warn "could not delete prediction model #{prediction_model}"
+      end
+      begin
+        OpenTox::RestClientWrapper.delete(ad_model) if ad_model
+      rescue => ex
+        Logger.warn "could not delete prediction model #{ad_model}"
+      end
+      res = self.uri
+      self.delete
+      "deleted model #{res}\n"
+    end
+    
     def independent_features
       self.independent_features_yaml ? YAML.load(self.independent_features_yaml) : []
     end
@@ -104,7 +120,7 @@ module SuperService
       })
       feature
     end
-
+    
     def prediction_confidence_feature
       if ad_algorithm
         a_model = OpenTox::Model::Generic.find(self.ad_model, subjectid)

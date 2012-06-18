@@ -104,6 +104,15 @@ post '/:id' do
   return_task(task)  
 end
 
+delete '/:id' do
+  model = SuperService::SuperModel.get(params[:id])
+  raise OpenTox::NotFoundError.new "super-model '#{params[:id]}' not found." unless model
+  LOGGER.info "deleting superservice model #{model.uri}"
+  content_type "text/plain"
+  model.delete_model
+end
+
+
 delete '/fminer_large_results' do
   SuperService::FminerWrapper.delete_large_results
 end
