@@ -134,7 +134,10 @@ class SuperserviceTest < Test::Unit::TestCase
       params = {#:dataset_uri=>dataset_uri,#
         :training_dataset_uri=>train_dataset_uri, :test_dataset_uri=>test_dataset_uri,
         :prediction_feature => prediction_feature, :algorithm_uri=>superservice, 
-        :algorithm_params=>"prediction_algorithm=#{prediction_algorithm};create_bbrc_features=true;ad_algorithm=#{ad_algorithm}"}
+        :algorithm_params=>"prediction_algorithm=#{prediction_algorithm};"+
+          "create_bbrc_features=true;"+
+          "ad_algorithm=#{ad_algorithm};"+
+          "ad_algorithm_param_app_domain_param_inflection_point=2"}
       validation = "#{host}validation/training_test_validation"
       OpenTox::RestClientWrapper.post(validation, params)  
       

@@ -183,7 +183,7 @@ module SuperService
         
       algorithm = OpenTox::Algorithm::Generic.new(prediction_algorithm)
       params = { :dataset_uri => combined_training_dataset_uri, :prediction_feature => prediction_feature, :subjectid => subjectid }
-      params.merge!(split_params(prediction_algorithm_params)) if prediction_algorithm_params
+      params.merge!(SuperService::split_params(prediction_algorithm_params)) if prediction_algorithm_params
       self.prediction_model = algorithm.run(params, OpenTox::SubTask.create(waiting_task, 33, 66))
         
       if self.use_all_features
@@ -210,7 +210,7 @@ module SuperService
         algorithm = OpenTox::Algorithm::Generic.new(ad_algorithm)
         params = { :dataset_uri => combined_training_dataset_uri, :prediction_feature => prediction_feature, 
         :subjectid => subjectid }#, :independent_variables => independent_features.join("\n") }
-        params.merge!(split_params(ad_algorithm_params)) if ad_algorithm_params
+        params.merge!(SuperService::split_params(ad_algorithm_params)) if ad_algorithm_params
         self.ad_model = algorithm.run(params, OpenTox::SubTask.create(waiting_task, 66, 100))
       end
       self.save

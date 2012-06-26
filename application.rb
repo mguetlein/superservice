@@ -3,6 +3,24 @@ require 'opentox-ruby'
 
 require 'superservice.rb'
 
+before do
+  ad_algorithm_params = {}
+  params.each do |k,v|
+    if k.to_s=~/^ad_algorithm_param_/
+      ad_algorithm_params[k.to_s.gsub(/^ad_algorithm_param_/,"")] = v
+      params.delete(k)
+    end
+  end
+  if ad_algorithm_params.size>0
+    value = ""
+    ad_algorithm_params.each do |k,v|
+      value += ";" if value.size>0
+      value += k.to_s+"="+v.to_s
+    end
+    params[:ad_algorithm_params] = value
+  end  
+end  
+
 post '/?' do
   LOGGER.info "creating supermodel #{params.inspect}"
   [:dataset_uri, :prediction_algorithm, :prediction_feature].each do |p|
