@@ -19,6 +19,7 @@ module SuperService
     
     def self.create(params={})
       params[:date] = Time.new
+      ["splat","captures"].each{|k| params.delete(k)}
       model = super params
       model
     end

@@ -102,6 +102,7 @@ module SuperService
       params[:date] = Time.new
       params[:creator] = AA_SERVER ? OpenTox::Authorization.get_user(subjectid) : "unknown"
       params[:use_all_features] = true
+      ["splat","captures"].each{|k| params.delete(k)}
       model = super params
       model.subjectid = subjectid
       model
