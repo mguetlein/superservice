@@ -80,23 +80,28 @@ module SuperService
             :min_frequency => [1,(size*f.relative_min_frequency.to_f).to_i].max,
             :max_num_features => 1000},
           {},waiting_task).to_s
-        #merge feature and training dataset
-        combined_data = OpenTox::Dataset.create
-        data_feat = OpenTox::Dataset.find(f.fminer_dataset_uri)
-        LOGGER.debug "num features mined by fminer: #{data_feat.features.size}"
-        {data_train => [f.prediction_feature], data_feat => data_feat.features.keys}.each do |d,features|
-          d.compounds.each{|c| combined_data.add_compound(c)}
-          features.each do |feat|
-            combined_data.add_feature(feat,d.features[feat])
-            d.compounds.each do |c|
-              d.data_entries[c][feat].each do |v|
-                combined_data.add(c,feat,v,true)
-              end if d.data_entries[c] and d.data_entries[c][feat]
-            end
-          end
-        end
-        combined_data.save
-        f.combined_dataset_uri = combined_data.uri
+        
+        raise unless f.fminer_dataset_uri.gsub(/dataset\/[0-9]+$/,"dataset") == f.dataset_uri.gsub(/dataset\/[0-9]+$/,"dataset")
+        dataset_host = f.fminer_dataset_uri.gsub(/dataset\/[0-9]+$/,"dataset")
+        f.combined_dataset_uri = OpenTox::RestClientWrapper.post(dataset_host+"/merge",
+          {"dataset1"=>f.dataset_uri,"dataset2"=>f.fminer_dataset_uri,"features1"=>f.prediction_feature})
+#        #merge feature and training dataset
+#        combined_data = OpenTox::Dataset.create
+#        data_feat = OpenTox::Dataset.find(f.fminer_dataset_uri)
+#        LOGGER.debug "num features mined by fminer: #{data_feat.features.size}"
+#        {data_train => [f.prediction_feature], data_feat => data_feat.features.keys}.each do |d,features|
+#          d.compounds.each{|c| combined_data.add_compound(c)}
+#          features.each do |feat|
+#            combined_data.add_feature(feat,d.features[feat])
+#            d.compounds.each do |c|
+#              d.data_entries[c][feat].each do |v|
+#                combined_data.add(c,feat,v,true)
+#              end if d.data_entries[c] and d.data_entries[c][feat]
+#            end
+#          end
+#        end
+#        combined_data.save
+#        f.combined_dataset_uri = combined_data.uri
         f.save
         f
       end
