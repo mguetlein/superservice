@@ -48,12 +48,12 @@ module SuperService
       begin
         OpenTox::RestClientWrapper.delete(prediction_model)
       rescue => ex
-        Logger.warn "could not delete prediction model #{prediction_model}"
+        LOGGER.warn "could not delete prediction model #{prediction_model}"
       end
       begin
         OpenTox::RestClientWrapper.delete(ad_model) if ad_model
       rescue => ex
-        Logger.warn "could not delete prediction model #{ad_model}"
+        LOGGER.warn "could not delete prediction model #{ad_model}"
       end
       res = self.uri
       self.delete
