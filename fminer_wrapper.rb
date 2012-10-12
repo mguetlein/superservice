@@ -10,17 +10,27 @@ module SuperService
     attribute :dataset_uri
     attribute :fminer_dataset_uri
     attribute :combined_dataset_uri
+    attribute :min_chisq_significance
     
     index :algorithm_uri
     index :dataset_uri
     index :prediction_feature
     index :relative_min_frequency
     index :feature_dataset_uri    
+    index :min_chisq_significance
+    
+    def self.check_params(params)
+      p = {}
+      params.each{|k,v| p[k.to_s.to_sym] = v.to_s}
+      [:splat,:captures].each{|k| p.delete(k)}
+      p.delete(:min_chisq_significance) if p[:min_chisq_significance]=="0.95"
+      p
+    end
     
     def self.create(params={})
-      params[:date] = Time.new
-      ["splat","captures"].each{|k| params.delete(k)}
-      model = super params
+      p = check_params(params)
+      p[:date] = Time.new
+      model = super p
       model
     end
     
@@ -50,10 +60,7 @@ module SuperService
     end
     
     def self.find_or_create_wrapper(algorithm_uri, algorithm_params)
-      p = {}
-      algorithm_params.keys.each do |k|
-        p[k.to_s.to_sym] = algorithm_params[k]
-      end
+      p = check_params(algorithm_params)
       p[:algorithm_uri] = algorithm_uri
       set = FminerWrapper.find(p)
       if set.size>0
@@ -67,7 +74,8 @@ module SuperService
     end
     
     def self.mine_and_combine(algorithm_uri, algorithm_params, waiting_task=nil)
-      f = find_or_create_wrapper(algorithm_uri,algorithm_params)
+      p = check_params(algorithm_params)
+      f = find_or_create_wrapper(algorithm_uri,p)
       if f.fminer_dataset_uri and f.combined_dataset_uri
         LOGGER.info "fminer features already mined #{f.combined_dataset_uri}"
         f
@@ -78,6 +86,7 @@ module SuperService
           { :dataset_uri => f.dataset_uri, 
             :prediction_feature => f.prediction_feature, 
             :min_frequency => [1,(size*f.relative_min_frequency.to_f).to_i].max,
+            :min_chisq_significance => f.min_chisq_significance==nil ? "0.95" : f.min_chisq_significance,
             :max_num_features => 1000},
           {},waiting_task).to_s
         

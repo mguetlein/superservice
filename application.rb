@@ -122,6 +122,23 @@ post '/:id' do
   return_task(task)  
 end
 
+post '/:id/test_dataset_features' do
+  LOGGER.info "compute test_dataset_features for super-model with id "+params[:id].to_s
+  raise OpenTox::BadRequestError.new "dataset_uri missing" unless params[:dataset_uri].to_s.size>0
+  model = SuperService::SuperModel.get(params[:id])
+  raise OpenTox::NotFoundError.new "super-model '#{params[:id]}' not found." unless model
+  model.subjectid = @subjectid
+  task = OpenTox::Task.create( "Compute test dataset features for super-model", url_for("/", :full) ) do |task|
+    res = model.test_dataset_features(params[:dataset_uri],task)
+    LOGGER.info "super-model test dataset features result: "+res.to_s
+    res
+  end
+  return_task(task)  
+end
+
+
+
+
 delete '/:id' do
   model = SuperService::SuperModel.get(params[:id])
   raise OpenTox::NotFoundError.new "super-model '#{params[:id]}' not found." unless model

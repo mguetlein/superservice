@@ -30,6 +30,7 @@ module SuperService
     attribute :prediction_algorithm_params
     attribute :prediction_model
     attribute :ad_algorithm
+    attribute :ad_algorithm_weighted
     attribute :ad_algorithm_params
     attribute :ad_model
     attribute :training_dataset_uri
@@ -210,12 +211,25 @@ module SuperService
       if (ad_algorithm)
         algorithm = OpenTox::Algorithm::Generic.new(ad_algorithm)
         params = { :dataset_uri => combined_training_dataset_uri, :prediction_feature => prediction_feature, 
-        :subjectid => subjectid }#, :independent_variables => independent_features.join("\n") }
+          :subjectid => subjectid} #, :independent_variables => independent_features.join("\n") }
+        params[:weight_model_uri]=self.prediction_model if self.ad_algorithm_weighted=="true" 
         params.merge!(SuperService::split_params(ad_algorithm_params)) if ad_algorithm_params
         self.ad_model = algorithm.run(params, OpenTox::SubTask.create(waiting_task, 66, 100))
       end
       self.save
       raise unless self.valid?
+    end
+    
+    def test_dataset_features(dataset_uri, waiting_task=nil)
+      unless create_bbrc_features
+        nil
+      else
+        algorithm_uri = File.join(CONFIG[:services]["opentox-algorithm"],"fminer/bbrc/match")
+        algorithm_params = { :dataset_uri => dataset_uri, :feature_dataset_uri => self.feature_dataset_uri }
+        LOGGER.debug "matching bbrc features #{algorithm_params.inspect}"
+        f = FminerWrapper.match(algorithm_uri, algorithm_params)
+        dataset_uri = f.fminer_dataset_uri
+      end
     end
     
     def apply(dataset_uri, waiting_task=nil)
