@@ -70,11 +70,33 @@ module SuperService
     end
     
     def create_bbrc_features
-      self.create_bbrc_features_string.to_boolean
+      self.create_bbrc_features_string =~ /true/
     end
 
-    def create_bbrc_features=(bool)
-      self.create_bbrc_features_string = bool.to_s
+    def relative_min_frequency
+      if self.create_bbrc_features_string =~ /_rf/ 
+        match = self.create_bbrc_features_string.scan(/_rf([0-9]+)/).join("")
+        rf = "0.#{match}".to_f
+        raise "register new relative-frequency (just to make sure this hack works): '#{rf}'" unless [0.025, 0.05].include?(rf)
+        rf
+      else
+        0.05
+      end
+    end
+    
+    def min_chisq_significance
+      if self.create_bbrc_features_string =~ /_cs/ 
+        match = self.create_bbrc_features_string.scan(/_cs([0-9]+)/).join("")
+        cs = "0.#{match}".to_f
+        raise "register new chisq-significance (just to make sure this hack works): '#{cs}'" unless [0.85, 0.95].include?(cs)
+        cs
+      else
+        0.95
+      end      
+    end
+    
+    def create_bbrc_features=(string)
+      self.create_bbrc_features_string = string.to_s
     end
     
     def use_all_features
@@ -173,7 +195,8 @@ module SuperService
       
       if create_bbrc_features
         algorithm_uri = File.join(CONFIG[:services]["opentox-algorithm"],"fminer/bbrc")
-        algorithm_params = { :dataset_uri => self.training_dataset_uri, :prediction_feature => self.prediction_feature, :relative_min_frequency => 0.05 }
+        algorithm_params = { :dataset_uri => self.training_dataset_uri, :prediction_feature => self.prediction_feature,
+          :relative_min_frequency => relative_min_frequency(), :min_chisq_significance => min_chisq_significance() }
         LOGGER.debug "mining bbrc features #{algorithm_params.inspect}"
         f = FminerWrapper.mine_and_combine(algorithm_uri, algorithm_params)
         self.feature_dataset_uri = f.fminer_dataset_uri
