@@ -102,20 +102,25 @@ class SuperserviceTest < Test::Unit::TestCase
       #prediction_feature = "http://local-ot/dataset/8998/feature/Hamster%20Carcinogenicity"
        
       #kazius 250 no features
-      dataset_uri = "http://local-ot/dataset/9264"
-      train_dataset_uri = "http://local-ot/dataset/9299"
-      test_dataset_uri = "http://local-ot/dataset/9300"
-      prediction_feature = "http://local-ot/dataset/9264/feature/endpoint"
+      #dataset_uri = "http://local-ot/dataset/9264"
+      #train_dataset_uri = "http://local-ot/dataset/9299"
+      #test_dataset_uri = "http://local-ot/dataset/9300"
+      #prediction_feature = "http://local-ot/dataset/9264/feature/endpoint"
 
+      train_dataset_uri = "http://local-ot/dataset/12030"
+      prediction_feature = "http://local-ot/dataset/12030/feature/endpoint"
+      
 #      #build
-#      params = {:dataset_uri=>train_dataset_uri, :prediction_feature => prediction_feature,
-#        :prediction_algorithm => prediction_algorithm, 
-#        :create_bbrc_features=>true, :ad_algorithm => ad_algorithm}
-#      post "/",params
-#      puts last_response.body
-#      uri = last_response.body
-#      rep = wait_for_task(uri)
-#      puts rep
+      params = {:dataset_uri=>train_dataset_uri, :prediction_feature => prediction_feature,
+        :prediction_algorithm => prediction_algorithm, 
+        :create_bbrc_features=>"true_rf025_cs95", :ad_algorithm => ad_algorithm}
+      post "/",params
+      puts last_response.body
+      uri = last_response.body
+      rep = wait_for_task(uri)
+      puts rep
+      exit
+      
 #      id = rep.split("/").last
 #      
 #      #apply
